@@ -21,10 +21,18 @@ class ASMCode
     private:
         int countForTempVariables;
         SymbolTable& table;
-        std::vector<std::string> globalVariables;
+        std::vector<std::string> usedVariables;
         std::ostream output;
+
+        // processing token strings
+        int processTokenThree(const std::string& token);
+        std::string processTokenTwo(const std::string& token);
+
+        // adding temp variables
+        std::string createTempVariables();
     public:
         ASMCode(const std::string file, SymbolTable& symbolTable);
+
         void generateASM(node* node);
         void writeToASM();
 };

@@ -53,3 +53,21 @@ int t3_2_intVal(const string& t3) {
     return intVal;
 }
 
+int ASMCode::processTokenThree(const string& token)
+{
+    return t3_2_intVal(token);
+}
+
+string ASMCode::processTokenTwo(const string& token)
+{
+    return t2_2_pID(token);
+}
+
+// method to add temp variables
+string ASMCode::createTempVariables()
+{
+    string temp = "temp" + to_string(countForTempVariables);
+    usedVariables.push_back(temp); // adding temp variables to vector of total varibles
+
+    return temp;
+}
