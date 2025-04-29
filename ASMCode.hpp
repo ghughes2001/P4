@@ -21,7 +21,7 @@ class ASMCode
     private:
         int countForTempVariables;
         SymbolTable& table;
-        std::vector<std::string> usedVariables;
+        std::vector<std::string> usedVariables; // store all used varaibles
         std::ostream output;
 
         // processing token strings
