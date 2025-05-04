@@ -15,6 +15,7 @@ Main.cpp:
 #include "parser.hpp"
 #include "testTree.hpp"
 #include "semantics.hpp"
+#include "ASMCode.hpp"
 
 using namespace std;
 
@@ -71,13 +72,21 @@ int main(int argc, char* argv[])
         fileName = "output.txt";
 
     }
+    // Create output filename for assembly code
+    string outputFileName = fileName + ".asm";
     // calling parser
     node* tokenTree = (node*) parser(fileName);
     // checking semantics
-    SymbolTable s;
-    s.checkTable(tokenTree);
-    // display the table on screen
-    s.printTable();
+    SymbolTable symbolTable;
+    symbolTable.checkTable(tokenTree);
+    // display the symbol table on screen
+    symbolTable.printTable();
+    // Generate code
+    ASMCode ASMCODE(outputFileName, symbolTable);
+    ASMCODE.generateASM(tokenTree);
+    
+    cout << "Assembly code has been generated in " << outputFileName << endl;
+    
     // cleaning memory
     deleteTree(tokenTree);
 
