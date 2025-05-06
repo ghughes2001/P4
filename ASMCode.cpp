@@ -127,15 +127,26 @@ void ASMCode::generateC(node* node)
         // need to multiply the value by -1 to negate it
         if (node->child.size() > 1)
         {
-            string negateVariable = createExtraTempVariables();
-            // now looking at F grammar
-            generateF(node->child[1], negateVariable);
-            // store in assmebly file
-            output << "STORE " << negateVariable << endl;
-            // Load the value, negate it, and store it back
-            output << "LOAD " << negateVariable << endl;
-            output << "MULT -1" << endl;
-            output << "STORE " << negateVariable << endl;
+            // Check if we're negating a direct variable reference
+            if (node->child[1]->child.size() > 0 && node->child[1]->child[0]->tokenType == "t2") {
+                // Direct variable negation - no need for temp variable
+                string variable = processTokenTwo(node->child[1]->child[0]->tokenInstance);
+                output << "LOAD " << variable << endl;
+                output << "MULT -1" << endl;
+                output << "STORE " << variable << endl;
+            }
+            else {
+                // For more complex expressions, use a temp variable
+                string negateVariable = createExtraTempVariables();
+                // now looking at F grammar
+                generateF(node->child[1], negateVariable);
+                // store in assmebly file
+                output << "STORE " << negateVariable << endl;
+                // Load the value, negate it, and store it back
+                output << "LOAD " << negateVariable << endl;
+                output << "MULT -1" << endl;
+                output << "STORE " << negateVariable << endl;
+            }
         }
     }
 }
