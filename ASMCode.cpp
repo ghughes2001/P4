@@ -1,18 +1,14 @@
-/*
-Author: Grant Hughes
-Date: April 22, 2025
-
-ASMCode.cpp:
-    - Implementation for generating assembly code
-*/
-
+/**
+ *Author: Grant Hughes
+ *Date: April 22, 2025
+ *ASMCode.cpp:
+ * - Implementation for generating assembly code
+ **/
 #include <iostream>
 #include <cstdlib>
 #include <string>
 #include <algorithm>
-
 #include "ASMCode.hpp"
-
 using namespace std;
 
 // prototypes
@@ -27,21 +23,20 @@ inline void fatal(const string& message) {
 
 // function definitions:
 string t2_2_pID(string t2) {
-    if (t2[0] != '+') 
+    if (t2[0] != '+')
         fatal("Expected a plus sign for the first character of a t2 token.");
     t2[0] = 'p';
-    
     return t2;
 }
 
 int t3_2_intVal(const string& t3) {
     int intVal; // will hold the integer value of the t3 token
     int caseVal = 0; // set to +1 if upper-case (positive value) and set to -1 if lower-case (negative value)
-    
     if ((t3[0] < 65) || (t3[0] > 122)) // checking whole range from A to Z (ascii 65 - 122)
         fatal("Expected a letter for the first character of a t3 token.");
     if ((t3[0] > 90) && (t3[0] < 97)) // checking for ascii non-alphabetical characters between Z and a (ascii 91 - 96)
         fatal("Expected a letter for the first character of a t3 token.");
+    
     if ((t3[0] > 64) && (t3[0] < 91)) // upper-case letter, so integer will be positive
         caseVal = 1;
     else if ((t3[0] > 96) && (t3[0] < 123)) // lower-case letter, so integer will be negative
@@ -52,10 +47,8 @@ int t3_2_intVal(const string& t3) {
     // Create a copy of t3 with first character replaced by '0'
     string t3Copy = t3;
     t3Copy[0] = '0';
-    
     intVal = stoi(t3Copy); // convert to integer
-    intVal = intVal * caseVal; // set to negative if needed   
-    
+    intVal = intVal * caseVal; // set to negative if needed
     return intVal;
 }
 
@@ -73,8 +66,8 @@ string ASMCode::processTokenTwo(const string& token)
 string ASMCode::createExtraTempVariables()
 {
     string temp = "temp" + to_string(countForTempVariables);
+    countForTempVariables++;
     usedVariables.push_back(temp); // adding extra temp variables to vector of total varibles
-
     return temp;
 }
 
@@ -126,7 +119,7 @@ void ASMCode::generateC(node* node)
             // add to list of variables
             usedVariables.push_back(variable);
             // now write READ in assembly
-            output << "READ" << variable << endl;
+            output << "READ " << variable << endl;
         }
     }
     else if (node->child[0]->tokenInstance == "!") // C grammer can have the negate rule
@@ -156,10 +149,24 @@ void ASMCode::generateD(node* node)
     // print out the value of the identifier or immediate number to the screen
     if (node->child.size() > 1)
     {
-        string variable = createExtraTempVariables();
-        generateF(node->child[1], variable);
-        // write it in assembly file
-        output << "WRITE" << variable << endl;
+        // For $ operator, we should directly use the variable without creating a temp
+        if (node->child[1]->child.size() > 0 && node->child[1]->child[0]->tokenType == "t2") {
+            // If we're printing a variable (identifier)
+            string variable = processTokenTwo(node->child[1]->child[0]->tokenInstance);
+            output << "WRITE " << variable << endl;
+        }
+        else if (node->child[1]->child.size() > 0 && node->child[1]->child[0]->tokenType == "t3") {
+            // If we're printing an immediate value
+            int value = processTokenThree(node->child[1]->child[0]->tokenInstance);
+            output << "LOAD " << value << endl;
+            output << "WRITE " << endl;
+        }
+        else {
+            // For more complex expressions
+            string variable = createExtraTempVariables();
+            generateF(node->child[1], variable);
+            output << "WRITE " << variable << endl;
+        }
     }
 }
 
@@ -179,43 +186,33 @@ void ASMCode::generateE(node* node)
         // second argument
         string secondArgument = createExtraTempVariables();
         generateF(node->child[2], secondArgument);
-
         // Creating loop names for assembly code
         string startingLoop = "start" + to_string(countForTempVariables);
         string endingLoop = "end" + to_string(countForTempVariables);
         countForTempVariables++;
-
         // third argument (determines how many times the loop repeats)
         string thirdArgument = createExtraTempVariables();
         generateF(node->child[3], thirdArgument);
-
         // Check if loop count > 0 otherwisie why loop
         output << "LOAD " << thirdArgument << endl;
         output << "BRZNEG " << endingLoop << endl;
-        
         // comparing first argument
         output << "LOAD " << firstArgument << endl;
         output << "SUB " << secondArgument << endl;
         output << "BRZNEG " << endingLoop << endl;
-        
         // begin counter since greater
         output << "LOAD " << thirdArgument << endl;
         output << "STORE " << thirdArgument << endl;
-        
         // Loop start label
         output << startingLoop << ": LOOP" << endl;
-
         // B node
         processEachNodeInTree(node->child[4]);
-
         // descrease the third argument
         output << "LOAD " << thirdArgument << endl;
         output << "SUB 1" << endl;
         output << "STORE " << thirdArgument << endl;
-        
         // Check if loop counter > 0
         output << "BRPOS " << startingLoop << endl;
-        
         // Loop end label
         output << endingLoop << ": LOOP" << endl;
     }
@@ -231,14 +228,13 @@ void ASMCode::generateF(node* node, string& variable)
     // varaibles to access the what the node is and it's token type
     string nodeTokenType = node->child[0]->tokenType;
     string nodeTokenInstance = node->child[0]->tokenInstance;
-
     if (nodeTokenType == "t2")
     {
         // add as varibale and write to assembly file
         string insideVariable = processTokenTwo(nodeTokenInstance);
         output << "LOAD " << insideVariable << endl;
     }
-    if (nodeTokenType == "t3")
+    else if (nodeTokenType == "t3")
     {
         // add as varibale and write to assembly file
         int value = processTokenThree(nodeTokenInstance);
@@ -253,11 +249,9 @@ void ASMCode::generateF(node* node, string& variable)
             string firstArguemnt = createExtraTempVariables();
             generateF(node->child[1], firstArguemnt);
             output << "STORE " << firstArguemnt << endl;
-            
             // gettoing second argument
             string secondArgument = createExtraTempVariables();
             generateF(node->child[2], secondArgument);
-            
             // Add the first arguemnt to second arguemnt
             output << "ADD " << firstArguemnt << endl;
         }
@@ -266,25 +260,20 @@ void ASMCode::generateF(node* node, string& variable)
 
 void ASMCode::generateG(node* node)
 {
-   // handling the assignment operator (%)
+    // handling the assignment operator (%)
     if (node->child.size() < 3 || node->child[1]->tokenInstance != "%")
     {
         return;
     }
-    
-    // FIX: Proper assignment implementation - load right side, store to left side
-    
     // Getting the left-side (target) variable
     string leftVariable = processTokenTwo(node->child[0]->tokenInstance);
-    
     // Add left variable to global variables if not already there
     if (find(usedVariables.begin(), usedVariables.end(), leftVariable) == usedVariables.end()) {
         usedVariables.push_back(leftVariable);
     }
-    
     // Evaluate the right-side expression (F node)
-    generateF(node->child[2], leftVariable);
-    
+    string tempVariable = leftVariable; // We'll use the left variable directly
+    generateF(node->child[2], tempVariable);
     // Store the result in the left variable
     output << "STORE " << leftVariable << endl;
 }
@@ -297,7 +286,6 @@ void ASMCode::processEachNodeInTree(node* node)
         return; // there is no node to look at
     }
     string tokenTypeOfNode = node->tokenType; // access the node that is is tree
-
     // looking at node based on non-termianl in grammer
     if (tokenTypeOfNode == "S")
     {
@@ -352,7 +340,6 @@ void ASMCode::generateASM(node* node)
     output << "STOP" << endl;
     // now wrting variables that were used
     writeToASM();
-
 }
 
 // mehtod to write all temp variables

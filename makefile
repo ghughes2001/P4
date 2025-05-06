@@ -5,7 +5,7 @@ CXX = g++
 CXXFLAGS = -Wall -ansi -pedantic -std=c++11
 
 # Target executable name
-TARGET = P3
+TARGET = P4
 
 # Object files
 OBJS = main.o scanner.o parser.o testTree.o semantics.o ASMCode.o
