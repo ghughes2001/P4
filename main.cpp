@@ -49,29 +49,29 @@ int main(int argc, char* argv[])
         }
         myFile.close();
     }
-    if (argc == 1)
-    {
-        // variables for user input
-        string inputLine;
-        ofstream writeFile("output.txt", ios::trunc);
+    // if (argc == 1)
+    // {
+    //     // variables for user input
+    //     string inputLine;
+    //     ofstream writeFile("output.txt", ios::trunc);
 
-        if (!writeFile.is_open())
-        {
-            cout << "Error: Could not open file for writing" << endl;
-            exit(1);
-        }
+    //     if (!writeFile.is_open())
+    //     {
+    //         cout << "Error: Could not open file for writing" << endl;
+    //         exit(1);
+    //     }
 
-        while (getline(cin, inputLine))
-        {
-            if (inputLine.empty())
-                continue;
-            writeFile << inputLine << endl;
-        }
-        writeFile.close();
+    //     while (getline(cin, inputLine))
+    //     {
+    //         if (inputLine.empty())
+    //             continue;
+    //         writeFile << inputLine << endl;
+    //     }
+    //     writeFile.close();
 
-        fileName = "output.txt";
+    //     fileName = "output.txt";
 
-    }
+    // }
     // Create output filename for assembly code
     string outputFileName = fileName + ".asm";
     // calling parser
@@ -79,8 +79,6 @@ int main(int argc, char* argv[])
     // checking semantics
     SymbolTable symbolTable;
     symbolTable.checkTable(tokenTree);
-    // display the symbol table on screen
-    symbolTable.printTable();
     // Generate code
     ASMCode ASMCODE(outputFileName, symbolTable);
     ASMCODE.generateASM(tokenTree);
@@ -90,12 +88,12 @@ int main(int argc, char* argv[])
     // cleaning memory
     deleteTree(tokenTree);
 
-    if (argc == 1) // cleaning user input
-    {
-        // erasing contents of file so the next user dosn't have it
-        ofstream fileToClear("output.txt", ios::out | ios::trunc);
-        fileToClear.close();
-    }
+    // if (argc == 1) // cleaning user input
+    // {
+    //     // erasing contents of file so the next user dosn't have it
+    //     ofstream fileToClear("output.txt", ios::out | ios::trunc);
+    //     fileToClear.close();
+    // }
 
     return 0;
 }

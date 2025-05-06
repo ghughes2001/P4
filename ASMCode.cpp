@@ -36,7 +36,7 @@ string t2_2_pID(string t2) {
 
 int t3_2_intVal(const string& t3) {
     int intVal; // will hold the integer value of the t3 token
-    int caseVal; // set to +1 if upper-case (positive value) and set to -1 if lower-case (negative value)
+    int caseVal = 0; // set to +1 if upper-case (positive value) and set to -1 if lower-case (negative value)
     
     if ((t3[0] < 65) || (t3[0] > 122)) // checking whole range from A to Z (ascii 65 - 122)
         fatal("Expected a letter for the first character of a t3 token.");
@@ -93,6 +93,8 @@ void ASMCode::generateA(node* node)
             string variable = processTokenTwo(node->child[1]->tokenInstance);
             // add token to variable list
             usedVariables.push_back(variable);
+            output << "LOAD 0" << endl;
+            output << "STORE " << variable << endl;
         }
     }
 }
@@ -135,9 +137,12 @@ void ASMCode::generateC(node* node)
             string negateVariable = createExtraTempVariables();
             // now looking at F grammar
             generateF(node->child[1], negateVariable);
-            // writng in assmebly file
+            // store in assmebly file
+            output << "STORE " << negateVariable << endl;
+            // Load the value, negate it, and store it back
+            output << "LOAD " << negateVariable << endl;
             output << "MULT -1" << endl;
-            output << "STORE" << negateVariable << endl;
+            output << "STORE " << negateVariable << endl;
         }
     }
 }
@@ -209,7 +214,7 @@ void ASMCode::generateE(node* node)
         output << "STORE " << thirdArgument << endl;
         
         // Check if loop counter > 0
-        output << "BRPOS " << thirdArgument << endl;
+        output << "BRPOS " << startingLoop << endl;
         
         // Loop end label
         output << endingLoop << ": LOOP" << endl;
@@ -261,25 +266,27 @@ void ASMCode::generateF(node* node, string& variable)
 
 void ASMCode::generateG(node* node)
 {
-    if (node->child.size() < 3)
+   // handling the assignment operator (%)
+    if (node->child.size() < 3 || node->child[1]->tokenInstance != "%")
     {
         return;
     }
-    // t2 % F
-    // handing the F node
-    string variableForFNode = processTokenTwo(node->child[2]->tokenInstance);
     
-    // handinlg the t2 token node
-    string variableForTokenTwo = createExtraTempVariables();
-    generateF(node->child[0], variableForTokenTwo);
+    // FIX: Proper assignment implementation - load right side, store to left side
     
-    // Add right variable to global variables if not already there
-    if (find(usedVariables.begin(), usedVariables.end(), variableForFNode) == usedVariables.end()) {
-        usedVariables.push_back(variableForFNode);
+    // Getting the left-side (target) variable
+    string leftVariable = processTokenTwo(node->child[0]->tokenInstance);
+    
+    // Add left variable to global variables if not already there
+    if (find(usedVariables.begin(), usedVariables.end(), leftVariable) == usedVariables.end()) {
+        usedVariables.push_back(leftVariable);
     }
     
-    // Generate code to store right variable into left target
-    output << "STORE " << variableForFNode << endl;
+    // Evaluate the right-side expression (F node)
+    generateF(node->child[2], leftVariable);
+    
+    // Store the result in the left variable
+    output << "STORE " << leftVariable << endl;
 }
 
 // method to look at nodes and tree and know which grammar to call
@@ -325,8 +332,7 @@ void ASMCode::processEachNodeInTree(node* node)
     }
 }
 
-ASMCode::ASMCode(const std::string file, SymbolTable& symbolTable)
-    : table(symbolTable), countForTempVariables(0), output(file) {
+ASMCode::ASMCode(const std::string file, SymbolTable& symbolTable): countForTempVariables(0), table(symbolTable), output(file) {
     if (!output.is_open()) {
         cout << "Error: Could not open output file for assembly code creation." << endl;
         exit(1);

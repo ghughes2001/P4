@@ -8,7 +8,7 @@ CXXFLAGS = -Wall -ansi -pedantic -std=c++11
 TARGET = P3
 
 # Object files
-OBJS = main.o scanner.o parser.o testTree.o semantics.o
+OBJS = main.o scanner.o parser.o testTree.o semantics.o ASMCode.o
 
 # Default target
 all: $(TARGET)
@@ -32,6 +32,9 @@ testTree.o: testTree.cpp testTree.hpp node.hpp
 
 semantics.o: semantics.cpp semantics.hpp node.hpp
 	$(CXX) $(CXXFLAGS) -c semantics.cpp
+
+ASMCode.o: ASMCode.cpp ASMCode.hpp node.hpp semantics.hpp
+	$(CXX) $(CXXFLAGS) -c ASMCode.cpp
 
 # Clean up compiled files
 clean:
