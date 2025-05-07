@@ -176,6 +176,8 @@ void ASMCode::generateD(node* node)
             // For more complex expressions
             string variable = createExtraTempVariables();
             generateF(node->child[1], variable);
+            // Make sure to store the result in the variable before writing it
+            output << "STORE " << variable << endl;
             output << "WRITE " << variable << endl;
         }
     }
@@ -191,41 +193,51 @@ void ASMCode::generateE(node* node)
     // fourth argument n times, where n is the third argument
     if (node->child.size() >= 5)
     {
-        // first argument
+        // first argument - evaluate and store
         string firstArgument = createExtraTempVariables();
         generateF(node->child[1], firstArgument);
-        // second argument
+        output << "STORE " << firstArgument << endl;
+        
+        // second argument - evaluate and store
         string secondArgument = createExtraTempVariables();
         generateF(node->child[2], secondArgument);
+        output << "STORE " << secondArgument << endl;
+        
         // Creating loop names for assembly code
         string startingLoop = "start" + to_string(countForTempVariables);
         string endingLoop = "end" + to_string(countForTempVariables);
         countForTempVariables++;
+        
         // third argument (determines how many times the loop repeats)
         string thirdArgument = createExtraTempVariables();
         generateF(node->child[3], thirdArgument);
-        // Check if loop count > 0 otherwisie why loop
+        output << "STORE " << thirdArgument << endl;
+        
+        // Check if loop count > 0 otherwise why loop
         output << "LOAD " << thirdArgument << endl;
         output << "BRZNEG " << endingLoop << endl;
-        // comparing first argument
+        
+        // comparing first argument > second argument
         output << "LOAD " << firstArgument << endl;
         output << "SUB " << secondArgument << endl;
         output << "BRZNEG " << endingLoop << endl;
-        // begin counter since greater
-        output << "LOAD " << thirdArgument << endl;
-        output << "STORE " << thirdArgument << endl;
+        
         // Loop start label
-        output << startingLoop << ": LOOP" << endl;
-        // B node
+        output << startingLoop << ": NOOP" << endl;
+        
+        // B node (what to repeat in the loop)
         processEachNodeInTree(node->child[4]);
-        // descrease the third argument
+        
+        // decrease the third argument (counter)
         output << "LOAD " << thirdArgument << endl;
         output << "SUB 1" << endl;
         output << "STORE " << thirdArgument << endl;
+        
         // Check if loop counter > 0
         output << "BRPOS " << startingLoop << endl;
+        
         // Loop end label
-        output << endingLoop << ": LOOP" << endl;
+        output << endingLoop << ": NOOP" << endl;
     }
 }
 
@@ -236,18 +248,19 @@ void ASMCode::generateF(node* node, string& variable)
     {
         return;
     }
-    // varaibles to access the what the node is and it's token type
+    // variables to access what the node is and its token type
     string nodeTokenType = node->child[0]->tokenType;
     string nodeTokenInstance = node->child[0]->tokenInstance;
+    
     if (nodeTokenType == "t2")
     {
-        // add as varibale and write to assembly file
+        // add as variable and write to assembly file
         string insideVariable = processTokenTwo(nodeTokenInstance);
         output << "LOAD " << insideVariable << endl;
     }
     else if (nodeTokenType == "t3")
     {
-        // add as varibale and write to assembly file
+        // add as variable and write to assembly file
         int value = processTokenThree(nodeTokenInstance);
         output << "LOAD " << value << endl;
     }
@@ -256,15 +269,22 @@ void ASMCode::generateF(node* node, string& variable)
         // & +24 R100 means to add the value for identifier +24 plus 100
         if (node->child.size() >= 3)
         {
-            // getting first arguemnt
-            string firstArguemnt = createExtraTempVariables();
-            generateF(node->child[1], firstArguemnt);
-            output << "STORE " << firstArguemnt << endl;
-            // gettoing second argument
+            // getting first argument
+            string firstArgument = createExtraTempVariables();
+            generateF(node->child[1], firstArgument);
+            output << "STORE " << firstArgument << endl;
+            
+            // getting second argument
             string secondArgument = createExtraTempVariables();
             generateF(node->child[2], secondArgument);
-            // Add the first arguemnt to second arguemnt
-            output << "ADD " << firstArguemnt << endl;
+            output << "STORE " << secondArgument << endl;
+            
+            // Add the first argument to second argument
+            output << "LOAD " << firstArgument << endl;
+            output << "ADD " << secondArgument << endl;
+            
+            // Store the result in the provided variable
+            output << "STORE " << variable << endl;
         }
     }
 }
@@ -283,8 +303,7 @@ void ASMCode::generateG(node* node)
         usedVariables.push_back(leftVariable);
     }
     // Evaluate the right-side expression (F node)
-    string tempVariable = leftVariable; // We'll use the left variable directly
-    generateF(node->child[2], tempVariable);
+    generateF(node->child[2], leftVariable);
     // Store the result in the left variable
     output << "STORE " << leftVariable << endl;
 }
@@ -296,8 +315,8 @@ void ASMCode::processEachNodeInTree(node* node)
     {
         return; // there is no node to look at
     }
-    string tokenTypeOfNode = node->tokenType; // access the node that is is tree
-    // looking at node based on non-termianl in grammer
+    string tokenTypeOfNode = node->tokenType; // access the node that is in tree
+    // looking at node based on non-terminal in grammar
     if (tokenTypeOfNode == "S")
     {
         for (auto child: node->child)
@@ -345,19 +364,19 @@ void ASMCode::generateASM(node* node)
     {
         return;
     }
-    // begin proccessing the tree for assembly code
+    // begin processing the tree for assembly code
     processEachNodeInTree(node);
     // write STOP in assembly file once done
     output << "STOP" << endl;
-    // now wrting variables that were used
+    // now writing variables that were used
     writeToASM();
 }
 
-// mehtod to write all temp variables
+// method to write all temp variables
 void ASMCode::writeToASM()
 {
     for (string tempVariable: usedVariables)
     {
-        output << tempVariable << " 0" << endl; // write temp variable and assign it's value 0
+        output << tempVariable << " 0" << endl; // write temp variable and assign its value 0
     }
 }

@@ -1,0 +1,4 @@
+READ p136
+WRITE p5
+STOP
+p136 0
